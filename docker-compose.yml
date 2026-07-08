@@ -51,7 +51,7 @@ services:
         condition: service_healthy
     entrypoint: ["/bin/sh", "-c"]
     command: >
-      "crontab -l 2>/dev/null; echo '0 2 * * * /usr/local/bin/backup-postgres.sh >> /var/log/backup-postgres.log 2>&1' | crontab - && crond -f"
+      "crontab -l 2>/dev/null; echo '0 2 * * * sh /usr/local/bin/backup-postgres.sh >> /var/log/backup-postgres.log 2>&1' | crontab - && crond -f"
 
 volumes:
   postgres-data:
