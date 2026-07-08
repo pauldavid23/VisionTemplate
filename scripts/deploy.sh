@@ -54,8 +54,11 @@ health_ok() {
 }
 
 if ! health_ok; then
+  echo "Health check failed; container status and recent app logs:"
+  docker_compose ps || true
+  docker_compose logs --tail=100 app || true
   if [ -n "$PREVIOUS_IMAGE" ]; then
-    echo "Health check failed. Rolling back to $PREVIOUS_IMAGE"
+    echo "Rolling back to $PREVIOUS_IMAGE"
     export APP_IMAGE="$PREVIOUS_IMAGE"
     docker_compose up -d --force-recreate app || true
   fi
