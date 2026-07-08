@@ -8,13 +8,25 @@ cd "$APP_DIR"
 
 export APP_IMAGE="$IMAGE_TAG"
 
+# Use sudo only when the current user can't reach the Docker socket.
+NEED_SUDO=""
+if command -v sudo >/dev/null 2>&1 && [ ! -w /var/run/docker.sock ]; then
+  NEED_SUDO="sudo"
+fi
+
 docker_compose() {
-  if command -v sudo >/dev/null 2>&1 && [ ! -w /var/run/docker.sock ]; then
-    sudo docker compose "$@"
-  else
-    docker compose "$@"
-  fi
+  # Pass APP_IMAGE through explicitly: `sudo` resets the environment, so an
+  # exported APP_IMAGE would otherwise be dropped and compose would fall back
+  # to its default image tag.
+  $NEED_SUDO env APP_IMAGE="$APP_IMAGE" docker compose "$@"
 }
+
+# Authenticate to GHCR if a token was supplied (the package is private).
+# Runs in the same privilege context as compose so the credentials are visible
+# to the process that actually pulls the image.
+if [ -n "${GHCR_PAT:-}" ]; then
+  echo "$GHCR_PAT" | $NEED_SUDO docker login ghcr.io -u "${GHCR_ACTOR:-}" --password-stdin
+fi
 
 if [ -f .last-known-good ]; then
   PREVIOUS_IMAGE=$(cat .last-known-good)
