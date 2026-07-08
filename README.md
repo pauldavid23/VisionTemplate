@@ -71,4 +71,40 @@ npm run build   # output in build/
 npm run start   # serve the production build
 ```
 
-A `Dockerfile` is included for container deploys (Railway, Fly.io, Cloud Run, etc.).
+### Container deployment on EC2 or Docker hosts
+
+```bash
+docker compose up --build -d
+```
+
+This brings up:
+- the app on port `3000`
+- Postgres on port `5432`
+- a daily backup job that writes dumps into the `postgres-backups` volume
+
+### GitHub-driven deploys with rollback
+
+A workflow is included at `.github/workflows/deploy.yml`. When you push to `main`, it will:
+1. build and push a container image to GitHub Container Registry
+2. SSH into your EC2 host and run the deployment script
+3. verify `/api/ping`
+4. automatically roll back to the previous image tag if the health check fails
+
+Set these repository secrets before enabling the workflow:
+- `EC2_HOST`
+- `EC2_USER`
+- `EC2_SSH_KEY`
+
+### Kubernetes
+
+A starter manifest is available in `k8s/visiontemplate.yaml` and `k8s/namespace.yaml` for:
+- the app deployment and service
+- Postgres with persistent storage
+- a daily CronJob backup
+
+Apply it with:
+
+```bash
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/visiontemplate.yaml
+```
