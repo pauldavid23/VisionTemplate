@@ -33,7 +33,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/ping >/dev/null 2>&1 || exit 1"]
       interval: 20s
-      timeout: 10s
+      timeout: String
       retries: 10
 
   backup:
