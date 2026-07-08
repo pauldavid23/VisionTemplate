@@ -2,7 +2,7 @@
 // spin up a new repo from the template and the navbar, footer, and document
 // title all update together.
 export const SITE = {
-  name: "Paul's Vision Template",
+  name: "Vision Template",
   description: "A clean, demo-ready starting point.",
 } as const;
 
