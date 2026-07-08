@@ -12,6 +12,21 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: vision_template
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vision_template"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -30,6 +45,17 @@ jobs:
 
       - name: Type-check
         run: npm run typecheck
+
+      - name: Validate SQL (setup + migrations)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d vision_template -v ON_ERROR_STOP=1 -f db/setup.sql
+          for f in db/migrations/*.sql; do
+            [ -e "$f" ] || continue
+            echo "Applying $f"
+            psql -h localhost -U postgres -d vision_template -v ON_ERROR_STOP=1 -f "$f"
+          done
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
