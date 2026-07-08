@@ -17,10 +17,8 @@ docker_compose() {
   $NEED_SUDO env APP_IMAGE="$APP_IMAGE" docker compose "$@"
 }
 
-# psql invocation inside the postgres container (peer auth over the local socket).
 DB_PSQL="exec -T postgres psql -U postgres -d vision_template -v ON_ERROR_STOP=1"
 
-# Poll the deep health endpoint (server up AND database reachable) for ~60s.
 health_ok() {
   i=0
   while [ "$i" -lt 30 ]; do
@@ -33,9 +31,6 @@ health_ok() {
   return 1
 }
 
-# Apply any pending SQL migrations, tracked in a schema_migrations table so each
-# file runs exactly once. Fails the deploy (leaving the old app running) if a
-# migration errors, rather than starting the new app against a bad schema.
 run_migrations() {
   [ -d db/migrations ] || return 0
   docker_compose $DB_PSQL -c \
@@ -58,7 +53,7 @@ run_migrations() {
   done
 }
 
-# Re-launch the last known-good image and confirm it is actually healthy again.
+
 rollback() {
   if [ -z "$PREVIOUS_IMAGE" ]; then
     echo "!!! No previous known-good image to roll back to. Manual intervention required."
@@ -91,7 +86,6 @@ if ! docker_compose pull app; then
   exit 1
 fi
 
-# Bring the database up and wait for it to be healthy before migrating.
 if ! docker_compose up -d --wait postgres; then
   echo "Database failed to become healthy."
   exit 1
