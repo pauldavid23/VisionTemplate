@@ -17,6 +17,14 @@ docker_compose() {
   $NEED_SUDO env APP_IMAGE="$APP_IMAGE" docker compose "$@"
 }
 
+# Records the deploy outcome so the workflow can read it back and surface it in
+# the GitHub Actions UI. Values: in-progress | success | rolled-back | down |
+# no-previous | migration-aborted | pull-failed | db-unhealthy
+set_status() {
+  echo "$1" > .deploy-status
+}
+set_status in-progress
+
 DB_PSQL="exec -T postgres psql -U postgres -d vision_template -v ON_ERROR_STOP=1"
 
 health_ok() {
@@ -46,6 +54,7 @@ run_migrations() {
     echo "Applying migration $version"
     if ! docker_compose $DB_PSQL < "$f"; then
       echo "!!! Migration $version FAILED. Aborting deploy; existing app left running."
+      set_status migration-aborted
       exit 1
     fi
     docker_compose $DB_PSQL -c \
@@ -57,6 +66,7 @@ run_migrations() {
 rollback() {
   if [ -z "$PREVIOUS_IMAGE" ]; then
     echo "!!! No previous known-good image to roll back to. Manual intervention required."
+    set_status no-previous
     return
   fi
   echo "Rolling back to $PREVIOUS_IMAGE"
@@ -64,10 +74,12 @@ rollback() {
   docker_compose up -d --force-recreate app || true
   if health_ok; then
     echo "Rollback to $PREVIOUS_IMAGE succeeded; service healthy again."
+    set_status rolled-back
   else
     echo "!!! ROLLBACK ALSO UNHEALTHY — service is DOWN. Manual intervention required."
     docker_compose ps || true
     docker_compose logs --tail=100 app || true
+    set_status down
   fi
 }
 
@@ -83,11 +95,13 @@ fi
 
 if ! docker_compose pull app; then
   echo "Image pull failed."
+  set_status pull-failed
   exit 1
 fi
 
 if ! docker_compose up -d --wait postgres; then
   echo "Database failed to become healthy."
+  set_status db-unhealthy
   exit 1
 fi
 
@@ -110,3 +124,4 @@ if ! health_ok; then
 fi
 
 echo "$APP_IMAGE" > .last-known-good
+set_status success

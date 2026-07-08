@@ -35,6 +35,7 @@ jobs:
           tags: ghcr.io/${{ github.repository_owner }}/visiontemplate:${{ github.sha }}
 
       - name: Deploy to EC2
+        id: deploy
         uses: appleboy/ssh-action@v1.0.1
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -57,3 +58,38 @@ jobs:
         env:
           GHCR_PAT: ${{ secrets.GITHUB_TOKEN }}
           GHCR_ACTOR: ${{ github.actor }}
+
+      - name: Report deploy outcome
+        if: always()
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          printf '%s\n' "$EC2_SSH_KEY" > id_deploy
+          chmod 600 id_deploy
+          STATUS=$(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 -i id_deploy \
+            "$EC2_USER@$EC2_HOST" 'cat ~/visiontemplate/.deploy-status 2>/dev/null' || true)
+          rm -f id_deploy
+          STATUS=${STATUS:-unknown}
+          SHA=${GITHUB_SHA::7}
+          echo "Deploy status reported by host: $STATUS"
+          case "$STATUS" in
+            success)
+              echo "### ✅ Deploy succeeded — now running \`$SHA\`" >> "$GITHUB_STEP_SUMMARY" ;;
+            rolled-back)
+              echo "::warning::Deploy of $SHA failed its health check and was ROLLED BACK to the previous build. Site is UP on the old version."
+              echo "### ⚠️ Rolled back — \`$SHA\` failed, reverted to the previous build. **Site is UP** on the old version." >> "$GITHUB_STEP_SUMMARY" ;;
+            migration-aborted|pull-failed|db-unhealthy)
+              echo "::warning::Deploy of $SHA aborted ($STATUS) before swapping the app. The previous version is still running (site UP)."
+              echo "### ⚠️ Deploy aborted (\`$STATUS\`) — app was **not** swapped, previous version still running (site UP)." >> "$GITHUB_STEP_SUMMARY" ;;
+            down)
+              echo "::error::Deploy of $SHA failed AND the rollback was also unhealthy. SITE IS DOWN — manual intervention required."
+              echo "### ⛔ SITE DOWN — deploy and rollback both failed. Manual intervention required." >> "$GITHUB_STEP_SUMMARY" ;;
+            no-previous)
+              echo "::error::Deploy of $SHA failed and there was no previous known-good build to roll back to. Site is likely DOWN."
+              echo "### ⛔ Deploy failed with no previous build to roll back to — site likely DOWN." >> "$GITHUB_STEP_SUMMARY" ;;
+            *)
+              echo "::warning::Could not determine deploy status from the host (got '$STATUS')."
+              echo "### ❓ Unknown deploy status: \`$STATUS\` — check the Deploy step logs." >> "$GITHUB_STEP_SUMMARY" ;;
+          esac
