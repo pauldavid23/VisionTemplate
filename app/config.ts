@@ -3,7 +3,7 @@
 // title all update together.
 export const SITE = {
   name: "Vision Template",
-  description: "A clean, starting point.",
+  description: "A clean, demo-ready starting point.",
 } as const;
 
 // Top navigation links. Add routes in app/routes.ts and list them here.
