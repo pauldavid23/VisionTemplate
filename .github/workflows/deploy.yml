@@ -87,6 +87,7 @@ jobs:
               git fetch origin main
               git reset --hard origin/main
             fi
+            rm -f .deploy-status
             curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/deploy.sh -o /tmp/deploy.sh
             chmod +x /tmp/deploy.sh
             /tmp/deploy.sh ghcr.io/${{ github.repository_owner }}/visiontemplate:${{ github.sha }}
@@ -100,14 +101,23 @@ jobs:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
         run: |
+          SHA=${GITHUB_SHA::7}
+          # If the deploy step didn't run (a pre-deploy gate failed, so it was
+          # skipped/cancelled), do NOT read the host status file — it would
+          # reflect a PREVIOUS run. Report the CI failure instead.
+          if [ "$DEPLOY_OUTCOME" != "success" ] && [ "$DEPLOY_OUTCOME" != "failure" ]; then
+            echo "::error::CI failed before deploy (deploy step: ${DEPLOY_OUTCOME:-skipped}). Nothing was deployed; the server still runs the previous version."
+            echo "### ❌ CI failed before deploy — nothing deployed. Server still on the previous version." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           printf '%s\n' "$EC2_SSH_KEY" > id_deploy
           chmod 600 id_deploy
           STATUS=$(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 -i id_deploy \
             "$EC2_USER@$EC2_HOST" 'cat ~/visiontemplate/.deploy-status 2>/dev/null' || true)
           rm -f id_deploy
           STATUS=${STATUS:-unknown}
-          SHA=${GITHUB_SHA::7}
           echo "Deploy status reported by host: $STATUS"
           case "$STATUS" in
             success)
@@ -125,6 +135,6 @@ jobs:
               echo "::error::Deploy of $SHA failed and there was no previous known-good build to roll back to. Site is likely DOWN."
               echo "### ⛔ Deploy failed with no previous build to roll back to — site likely DOWN." >> "$GITHUB_STEP_SUMMARY" ;;
             *)
-              echo "::warning::Could not determine deploy status from the host (got '$STATUS')."
-              echo "### ❓ Unknown deploy status: \`$STATUS\` — check the Deploy step logs." >> "$GITHUB_STEP_SUMMARY" ;;
+              echo "::error::Deploy of $SHA did not complete (host status: $STATUS). It likely failed before recording an outcome — check the Deploy step logs."
+              echo "### ⛔ Deploy did not complete (\`$STATUS\`) — check the Deploy step logs." >> "$GITHUB_STEP_SUMMARY" ;;
           esac
