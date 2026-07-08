@@ -17,6 +17,65 @@ docker_compose() {
   $NEED_SUDO env APP_IMAGE="$APP_IMAGE" docker compose "$@"
 }
 
+# psql invocation inside the postgres container (peer auth over the local socket).
+DB_PSQL="exec -T postgres psql -U postgres -d vision_template -v ON_ERROR_STOP=1"
+
+# Poll the deep health endpoint (server up AND database reachable) for ~60s.
+health_ok() {
+  i=0
+  while [ "$i" -lt 30 ]; do
+    if curl -fsS http://127.0.0.1:3000/api/health >/dev/null 2>&1; then
+      return 0
+    fi
+    i=$((i + 1))
+    sleep 2
+  done
+  return 1
+}
+
+# Apply any pending SQL migrations, tracked in a schema_migrations table so each
+# file runs exactly once. Fails the deploy (leaving the old app running) if a
+# migration errors, rather than starting the new app against a bad schema.
+run_migrations() {
+  [ -d db/migrations ] || return 0
+  docker_compose $DB_PSQL -c \
+    "CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now());"
+  for f in db/migrations/*.sql; do
+    [ -e "$f" ] || continue
+    version=$(basename "$f")
+    applied=$(docker_compose $DB_PSQL -tAc \
+      "SELECT 1 FROM schema_migrations WHERE version = '$version'" | tr -d '[:space:]')
+    if [ "$applied" = "1" ]; then
+      continue
+    fi
+    echo "Applying migration $version"
+    if ! docker_compose $DB_PSQL < "$f"; then
+      echo "!!! Migration $version FAILED. Aborting deploy; existing app left running."
+      exit 1
+    fi
+    docker_compose $DB_PSQL -c \
+      "INSERT INTO schema_migrations (version) VALUES ('$version');"
+  done
+}
+
+# Re-launch the last known-good image and confirm it is actually healthy again.
+rollback() {
+  if [ -z "$PREVIOUS_IMAGE" ]; then
+    echo "!!! No previous known-good image to roll back to. Manual intervention required."
+    return
+  fi
+  echo "Rolling back to $PREVIOUS_IMAGE"
+  export APP_IMAGE="$PREVIOUS_IMAGE"
+  docker_compose up -d --force-recreate app || true
+  if health_ok; then
+    echo "Rollback to $PREVIOUS_IMAGE succeeded; service healthy again."
+  else
+    echo "!!! ROLLBACK ALSO UNHEALTHY — service is DOWN. Manual intervention required."
+    docker_compose ps || true
+    docker_compose logs --tail=100 app || true
+  fi
+}
+
 if [ -n "${GHCR_PAT:-}" ]; then
   echo "$GHCR_PAT" | $NEED_SUDO docker login ghcr.io -u "${GHCR_ACTOR:-}" --password-stdin
 fi
@@ -32,36 +91,27 @@ if ! docker_compose pull app; then
   exit 1
 fi
 
-if ! docker_compose up -d --force-recreate app; then
-  if [ -n "$PREVIOUS_IMAGE" ]; then
-    echo "Deployment failed. Rolling back to $PREVIOUS_IMAGE"
-    export APP_IMAGE="$PREVIOUS_IMAGE"
-    docker_compose up -d --force-recreate app || true
-  fi
+# Bring the database up and wait for it to be healthy before migrating.
+if ! docker_compose up -d --wait postgres; then
+  echo "Database failed to become healthy."
   exit 1
 fi
 
-health_ok() {
-  i=0
-  while [ "$i" -lt 30 ]; do
-    if curl -fsS http://127.0.0.1:3000/api/ping >/dev/null 2>&1; then
-      return 0
-    fi
-    i=$((i + 1))
-    sleep 2
-  done
-  return 1
-}
+run_migrations
+
+if ! docker_compose up -d --force-recreate app; then
+  echo "Deployment failed to start."
+  docker_compose ps || true
+  docker_compose logs --tail=100 app || true
+  rollback
+  exit 1
+fi
 
 if ! health_ok; then
   echo "Health check failed; container status and recent app logs:"
   docker_compose ps || true
   docker_compose logs --tail=100 app || true
-  if [ -n "$PREVIOUS_IMAGE" ]; then
-    echo "Rolling back to $PREVIOUS_IMAGE"
-    export APP_IMAGE="$PREVIOUS_IMAGE"
-    docker_compose up -d --force-recreate app || true
-  fi
+  rollback
   exit 1
 fi
 
