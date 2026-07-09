@@ -28,15 +28,15 @@ The app has a real server-side backend via React Router loaders/actions:
 - **Postgres** — connection pool in `app/lib/db.server.ts` (set `DATABASE_URL` in `.env`).
 - **API endpoints** — resource routes under `app/routes/api.*.ts`, no keys required.
 
-| Endpoint / page | What it does |
-| --- | --- |
-| `/db-demo` | Sample page: list/add/delete notes stored in Postgres. |
-| `/api-demo` | Sample page: ping the server and fetch data from an external API. |
-| `GET /api/notes` | JSON list of notes. |
-| `POST /api/notes` | Create a note: `{ "title": "...", "content": "..." }`. |
-| `GET /api/ping` | Health check: `{ "pong": true, "serverTime": ..., "uptimeSeconds": ... }`. |
-| `POST /api/ping` | Echo: `{ "message": "..." }` → `{ "pong": true, "echo": "..." }`. |
-| `GET /api/advice` | Server-side fetch to the free adviceslip.com API. |
+| Endpoint / page   | What it does                                                               |
+| ----------------- | -------------------------------------------------------------------------- |
+| `/db-demo`        | Sample page: list/add/delete notes stored in Postgres.                     |
+| `/api-demo`       | Sample page: ping the server and fetch data from an external API.          |
+| `GET /api/notes`  | JSON list of notes.                                                        |
+| `POST /api/notes` | Create a note: `{ "title": "...", "content": "..." }`.                     |
+| `GET /api/ping`   | Health check: `{ "pong": true, "serverTime": ..., "uptimeSeconds": ... }`. |
+| `POST /api/ping`  | Echo: `{ "message": "..." }` → `{ "pong": true, "echo": "..." }`.          |
+| `GET /api/advice` | Server-side fetch to the free adviceslip.com API.                          |
 
 ## Make it yours
 
@@ -47,18 +47,18 @@ The app has a real server-side backend via React Router loaders/actions:
 
 ## What's included
 
-| Path | What it is |
-| --- | --- |
-| `app/app.css` | Design system: theme tokens, fonts, and utilities (`aurora`, `grain`, `gradient-text-brand`, `card-lift`, `text-display`). |
-| `app/config.ts` | Site name, description, and nav links. |
-| `app/root.tsx` | Document shell, dark-by-default boot script, app frame (Navbar + Footer). |
-| `app/components/` | `Button` / `LinkButton`, `Navbar`, `Footer`, `Logo`, `ThemeToggle`. |
-| `app/routes/home.tsx` | Example landing page showing the style in use. |
-| `app/routes/db-demo.tsx` | Sample page backed by Postgres (loader + action). |
-| `app/routes/api-demo.tsx` | Sample page exercising the JSON API endpoints. |
-| `app/routes/api.*.ts` | Resource routes: `/api/notes`, `/api/ping`, `/api/advice`. |
-| `app/lib/db.server.ts` | Postgres connection pool and query helpers. |
-| `db/setup.sql` | Creates and seeds the `notes` table. |
+| Path                      | What it is                                                                                                                 |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `app/app.css`             | Design system: theme tokens, fonts, and utilities (`aurora`, `grain`, `gradient-text-brand`, `card-lift`, `text-display`). |
+| `app/config.ts`           | Site name, description, and nav links.                                                                                     |
+| `app/root.tsx`            | Document shell, dark-by-default boot script, app frame (Navbar + Footer).                                                  |
+| `app/components/`         | `Button` / `LinkButton`, `Navbar`, `Footer`, `Logo`, `ThemeToggle`.                                                        |
+| `app/routes/home.tsx`     | Example landing page showing the style in use.                                                                             |
+| `app/routes/db-demo.tsx`  | Sample page backed by Postgres (loader + action).                                                                          |
+| `app/routes/api-demo.tsx` | Sample page exercising the JSON API endpoints.                                                                             |
+| `app/routes/api.*.ts`     | Resource routes: `/api/notes`, `/api/ping`, `/api/advice`.                                                                 |
+| `app/lib/db.server.ts`    | Postgres connection pool and query helpers.                                                                                |
+| `db/setup.sql`            | Creates and seeds the `notes` table.                                                                                       |
 
 Style with the **semantic tokens** (`bg-background`, `text-muted-foreground`,
 `border-border`, `bg-primary`, …) rather than raw Tailwind colors so light/dark
@@ -78,6 +78,7 @@ docker compose up --build -d
 ```
 
 This brings up:
+
 - the app on port `3000`
 - Postgres on port `5432`
 - a daily backup job that writes dumps into the `postgres-backups` volume
@@ -85,12 +86,14 @@ This brings up:
 ### GitHub-driven deploys with rollback
 
 A workflow is included at `.github/workflows/deploy.yml`. When you push to `main`, it will:
+
 1. build and push a container image to GitHub Container Registry
 2. SSH into your EC2 host and run the deployment script
 3. verify `/api/ping`
 4. automatically roll back to the previous image tag if the health check fails
 
 Set these repository secrets before enabling the workflow:
+
 - `EC2_HOST`
 - `EC2_USER`
 - `EC2_SSH_KEY`
@@ -98,6 +101,7 @@ Set these repository secrets before enabling the workflow:
 ### Kubernetes
 
 A starter manifest is available in `k8s/visiontemplate.yaml` and `k8s/namespace.yaml` for:
+
 - the app deployment and service
 - Postgres with persistent storage
 - a daily CronJob backup

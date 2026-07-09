@@ -46,6 +46,12 @@ jobs:
       - name: Type-check
         run: npm run typecheck
 
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Check formatting (Prettier)
+        run: npm run format:check
+
       - name: Validate SQL (setup + migrations)
         env:
           PGPASSWORD: postgres
@@ -56,6 +62,14 @@ jobs:
             echo "Applying $f"
             psql -h localhost -U postgres -d vision_template -v ON_ERROR_STOP=1 -f "$f"
           done
+
+      - name: Lint shell scripts (shellcheck)
+        run: shellcheck scripts/*.sh
+
+      - name: Lint workflows (actionlint)
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -81,7 +95,7 @@ jobs:
           docker pull "$IMAGE"
           docker run --rm -d --name smoke -p 3000:3000 -e PORT=3000 "$IMAGE"
           ok=""
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:3000/api/ping >/dev/null 2>&1; then
               ok=1; break
             fi

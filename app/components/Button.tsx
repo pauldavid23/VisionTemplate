@@ -28,9 +28,11 @@ type BaseProps = {
   className?: string;
 };
 
-function classes(
-  { variant = "default", size = "default", className = "" }: BaseProps,
-) {
+function classes({
+  variant = "default",
+  size = "default",
+  className = "",
+}: BaseProps) {
   const shine = variant === "default" ? "shine" : "";
   return `${base} ${variants[variant]} ${sizes[size]} ${shine} ${className}`.trim();
 }
@@ -41,12 +43,7 @@ type LinkButtonProps = BaseProps & { to: string } & Omit<
     "to" | "className"
   >;
 
-export function Button({
-  variant,
-  size,
-  className,
-  ...props
-}: ButtonProps) {
+export function Button({ variant, size, className, ...props }: ButtonProps) {
   return (
     <button className={classes({ variant, size, className })} {...props} />
   );
@@ -60,6 +57,10 @@ export function LinkButton({
   ...props
 }: LinkButtonProps) {
   return (
-    <Link to={to} className={classes({ variant, size, className })} {...props} />
+    <Link
+      to={to}
+      className={classes({ variant, size, className })}
+      {...props}
+    />
   );
 }

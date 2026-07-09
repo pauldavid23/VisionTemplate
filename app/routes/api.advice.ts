@@ -11,11 +11,16 @@ export async function loader(_: Route.LoaderArgs) {
       throw new Error(`Upstream responded with ${response.status}`);
     }
     const data = await response.json();
-    return Response.json({ advice: data.slip.advice, source: "adviceslip.com" });
+    return Response.json({
+      advice: data.slip.advice,
+      source: "adviceslip.com",
+    });
   } catch (error) {
     console.error("External fetch failed:", error);
     return Response.json(
-      { error: error instanceof Error ? error.message : "External fetch failed" },
+      {
+        error: error instanceof Error ? error.message : "External fetch failed",
+      },
       { status: 502 },
     );
   }

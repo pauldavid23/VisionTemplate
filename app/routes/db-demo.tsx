@@ -3,7 +3,7 @@ import type { Route } from "./+types/db-demo";
 import { Button } from "../components/Button";
 import { createNote, deleteNote, listNotes } from "../lib/db.server";
 
-export function meta({}: Route.MetaArgs) {
+export function meta(_: Route.MetaArgs) {
   return [{ title: "DB Demo — Postgres" }];
 }
 
@@ -39,14 +39,12 @@ export default function DbDemo({
 
   return (
     <section className="container mx-auto max-w-3xl px-4 py-16">
-      <h1 className="text-3xl font-semibold text-foreground">
-        Postgres demo
-      </h1>
+      <h1 className="text-3xl font-semibold text-foreground">Postgres demo</h1>
       <p className="mt-2 text-muted-foreground">
         These notes live in the local <code>vision_template</code> database
         (table <code>notes</code>). Adding or deleting a note runs a real SQL
-        query through the server loader/action. The same data is also exposed
-        as JSON at <code>/api/notes</code>.
+        query through the server loader/action. The same data is also exposed as
+        JSON at <code>/api/notes</code>.
       </p>
 
       <Form

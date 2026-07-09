@@ -1,4 +1,7 @@
 #!/bin/sh
+# $NEED_SUDO and $DB_PSQL are intentionally left unquoted so they word-split
+# into separate arguments (POSIX sh has no arrays). Suppress SC2086 file-wide.
+# shellcheck disable=SC2086
 set -eu
 
 IMAGE_TAG="${1:?usage: deploy.sh IMAGE_TAG}"
@@ -17,9 +20,6 @@ docker_compose() {
   $NEED_SUDO env APP_IMAGE="$APP_IMAGE" docker compose "$@"
 }
 
-# Records the deploy outcome so the workflow can read it back and surface it in
-# the GitHub Actions UI. Values: in-progress | success | rolled-back | down |
-# no-previous | migration-aborted | pull-failed | db-unhealthy
 set_status() {
   echo "$1" > .deploy-status
 }

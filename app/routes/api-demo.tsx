@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Route } from "./+types/api-demo";
 import { Button } from "../components/Button";
 
-export function meta({}: Route.MetaArgs) {
+export function meta(_: Route.MetaArgs) {
   return [{ title: "API Demo" }];
 }
 
@@ -88,7 +88,14 @@ export default function ApiDemo() {
         </div>
         {ping && (
           <div className="mt-4 rounded-lg border border-border bg-background p-4 font-mono text-sm text-foreground">
-            <div>pong: {String(ping.pong)} {pingMs !== null && <span className="text-muted-foreground">({pingMs} ms round trip)</span>}</div>
+            <div>
+              pong: {String(ping.pong)}{" "}
+              {pingMs !== null && (
+                <span className="text-muted-foreground">
+                  ({pingMs} ms round trip)
+                </span>
+              )}
+            </div>
             <div>serverTime: {ping.serverTime}</div>
             {ping.uptimeSeconds !== undefined && (
               <div>uptimeSeconds: {ping.uptimeSeconds}</div>

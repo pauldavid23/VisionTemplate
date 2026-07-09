@@ -7,8 +7,7 @@ const connectionString =
 // Reuse a single pool across HMR reloads in dev.
 const globalForDb = globalThis as unknown as { __pgPool?: Pool };
 
-export const pool =
-  globalForDb.__pgPool ?? new Pool({ connectionString });
+export const pool = globalForDb.__pgPool ?? new Pool({ connectionString });
 
 if (!globalForDb.__pgPool) {
   globalForDb.__pgPool = pool;
@@ -28,7 +27,10 @@ export async function listNotes(): Promise<Note[]> {
   return rows;
 }
 
-export async function createNote(title: string, content: string): Promise<Note> {
+export async function createNote(
+  title: string,
+  content: string,
+): Promise<Note> {
   const { rows } = await pool.query<Note>(
     "INSERT INTO notes (title, content) VALUES ($1, $2) RETURNING id, title, content, created_at",
     [title, content],

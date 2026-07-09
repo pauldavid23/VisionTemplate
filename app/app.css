@@ -14,10 +14,12 @@
 
 @theme inline {
   /* Typography */
-  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", sans-serif;
-  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", "SFMono-Regular",
-    Menlo, monospace;
+  --font-sans:
+    "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+  --font-mono:
+    "Geist Mono Variable", ui-monospace, "SF Mono", "SFMono-Regular", Menlo,
+    monospace;
 
   /* Semantic colors */
   --color-background: var(--background);
@@ -52,9 +54,11 @@
 
   /* Subtle, cool-tinted shadows */
   --shadow-xs: 0 1px 2px 0 oklch(0.21 0.04 265 / 0.04);
-  --shadow-sm: 0 1px 2px 0 oklch(0.21 0.04 265 / 0.05),
+  --shadow-sm:
+    0 1px 2px 0 oklch(0.21 0.04 265 / 0.05),
     0 1px 3px 0 oklch(0.21 0.04 265 / 0.04);
-  --shadow-md: 0 2px 4px -1px oklch(0.21 0.04 265 / 0.06),
+  --shadow-md:
+    0 2px 4px -1px oklch(0.21 0.04 265 / 0.06),
     0 4px 12px -2px oklch(0.21 0.04 265 / 0.08);
   --shadow-lg: 0 8px 24px -4px oklch(0.21 0.04 265 / 0.1);
 }
